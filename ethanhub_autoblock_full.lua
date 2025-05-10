@@ -8,7 +8,7 @@ local settings = {
     Radius = 10,
     BlockBehind = false,
     Keybind = Enum.KeyCode.RightShift,
-    UseClashFallback = false, -- Disabled per user request
+    UseClashFallback = false, 
 }
 
 local staffUsernames = {
@@ -114,7 +114,7 @@ Players.PlayerAdded:Connect(function(player)
     end
 end)
 
--- AutoBlock Detection (placeholder animation IDs)
+
 local blockAnimations = {
     ["82911091354553"] = true, ["103336801329780"] = true, ["105150646815272"] = true,
     ["98318926280319"] = true, ["108913510610406"] = true, ["107740883402248"] = true,
