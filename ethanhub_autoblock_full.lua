@@ -159,34 +159,28 @@ radiusSlider.FocusLost:Connect(function()
 end)
 
 --// Arena Detection
-local function GetCurrentArena()
-	local CurrentArena = nil
-	local Opponent = nil
+GetCurrentArena = () ->
+	CurrentArena = nil
+	Opponent = nil
+	for Arena in *workspace.Arenas::GetChildren!
+		Info = Arena::FindFirstChild "Info"
+		P1 = Info?::FindFirstChild "P1", true
+		P2 = Info?::FindFirstChild "P2", true
 
-	for _, Arena in pairs(workspace:WaitForChild("Arenas"):GetChildren()) do
-		local Info = Arena:FindFirstChild("Info")
-		local P1 = Info and Info:FindFirstChild("P1", true)
-		local P2 = Info and Info:FindFirstChild("P2", true)
-		local Active = Info and Info:FindFirstChild("Active")
+		continue unless (Info?::FindFirstChild "Active")?.Value
 
-		if Active and Active.Value then
-			if P1 and P2 then
-				local T1 = P1:FindFirstChild("Title") and P1.Title.Text
-				local T2 = P2:FindFirstChild("Title") and P2.Title.Text
+		if P1 and P2
+			T1 = P1.Title.Text
+			T2 = P2.Title.Text
 
-				if T1 == LocalPlayer.Name then
-					CurrentArena = Arena
-					Opponent = T2
-				elseif T2 == LocalPlayer.Name then
-					CurrentArena = Arena
-					Opponent = T1
-				end
-			end
-		end
-	end
+			if T1 == LocalPlayer.Name
+				CurrentArena = Arena
+				Opponent = T2
+			if T2 == LocalPlayer.Name
+				CurrentArena = Arena
+				Opponent = T1
 
 	return CurrentArena, Opponent
-end
 
 --// Animation Detection (with zero delay)
 local targetAnimations = {
@@ -223,6 +217,3 @@ RS.RenderStepped:Connect(function()
 		end
 	end
 end)
-
-
-
