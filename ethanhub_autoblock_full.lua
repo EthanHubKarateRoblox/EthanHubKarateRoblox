@@ -1,46 +1,22 @@
---// Load Linoria UI Library
-local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
-local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+--// Load Vape UI Library
+local repo = "https://raw.githubusercontent.com/Glitchfiend/Vape-Roblox/main/"
+local VapeUI = loadstring(game:HttpGet(repo .. "VapeUI.lua"))()
 
---// Main Window Setup
-local Window = Library:CreateWindow({
-    Title = "EthanHub",
-    Footer = "AutoBlock Script",
-    Icon = 95816097006870,
-    Center = true,
-    AutoShow = true,
-    NotifySide = "Right"
-})
-
-local Tabs = {
-    Main = Window:AddTab("EthanHub", "shield"),
-    ["UI Settings"] = Window:AddTab("UI Settings", "settings")
-}
-
---// Group
-local MainGroup = Tabs.Main:AddLeftGroupbox("AutoBlock")
+--// Create the main window
+local Window = VapeUI.CreateWindow("EthanHub")
+local MainTab = Window:AddTab("Main", "shield")
+local SettingsTab = Window:AddTab("Settings", "settings")
 
 --// State Variables
 local autoblockEnabled = false
 local blockRadius = 10
+local arenaOnly = false
 local chosenKey = Enum.KeyCode.R
 local toggleKey = Enum.KeyCode.RightShift
 local spherePart = nil
-local arenaOnly = false
 local opponent = nil
 
---// Required Services
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local workspace = game:GetService("Workspace")
-
---// Staff List
+--// Staff List (example)
 local staffList = {
     Eyroku = true, realkeatos123456 = true, Capybarabruv = true, kurosfx = true,
     PancakesHDD = true, OSCARsdb1 = true, missionslayer = true, ["80poplic"] = true,
@@ -51,7 +27,65 @@ local staffList = {
     kyasuji = true, kyesumi = true
 }
 
---// Known attack animations
+--// AutoBlock toggle button
+local AutoBlockToggle = MainTab:AddToggle("AutoBlock", "Enable AutoBlock", false, function(value)
+    autoblockEnabled = value
+    if autoblockEnabled then
+        VapeUI:Notify("AutoBlock Enabled")
+    else
+        VapeUI:Notify("AutoBlock Disabled")
+    end
+end)
+
+--// Toggle for Arena-Only Mode
+local ArenaOnlyToggle = MainTab:AddToggle("ArenaOnly", "Arena Only Mode", false, function(value)
+    arenaOnly = value
+    if arenaOnly then
+        VapeUI:Notify("Arena Only Mode Enabled")
+    else
+        VapeUI:Notify("Arena Only Mode Disabled")
+    end
+end)
+
+--// Server Hop Toggle (Set to false if you don't want it)
+local ServerHopToggle = MainTab:AddToggle("ServerHop", "Enable Server Hop on Staff Detection", false, function(value)
+    -- Your server hop logic goes here
+end)
+
+--// Keybind setup for AutoBlock (Default is "R")
+local Keybind = MainTab:AddKeybind("AutoBlock Keybind", "Set AutoBlock Keybind", Enum.KeyCode.R, function(newKey)
+    chosenKey = newKey
+    VapeUI:Notify("AutoBlock Keybind set to " .. chosenKey.Name)
+end)
+
+--// Keybind setup for GUI Toggle (Default is RightShift)
+local GuiKeybind = SettingsTab:AddKeybind("GUI Keybind", "Set GUI Toggle Keybind", Enum.KeyCode.RightShift, function(newKey)
+    toggleKey = newKey
+    VapeUI:Notify("GUI Keybind set to " .. toggleKey.Name)
+end)
+
+--// Show Block Range (Visualization)
+local ShowRangeToggle = MainTab:AddToggle("Show Range", "Show Block Range", false, function(value)
+    if value then
+        if not spherePart then
+            spherePart = Instance.new("Part")
+            spherePart.Anchored = true
+            spherePart.CanCollide = false
+            spherePart.Transparency = 0.7
+            spherePart.Material = Enum.Material.Neon
+            spherePart.Color = Color3.fromRGB(0, 170, 255)
+            spherePart.Shape = Enum.PartType.Ball
+            spherePart.Parent = workspace
+        end
+    else
+        if spherePart then
+            spherePart:Destroy()
+            spherePart = nil
+        end
+    end
+end)
+
+--// Attack Animations (example)
 local AttackAnimations = {
     ["82911091354553"] = true, ["103336801329780"] = true, ["105150646815272"] = true,
     ["98318926280319"] = true, ["108913510610406"] = true, ["107740883402248"] = true,
@@ -66,146 +100,55 @@ local AttackAnimations = {
     ["85410000959765"] = true, ["76496360985151"] = true, ["74555786900330"] = true
 }
 
---// UI Elements
-MainGroup:AddToggle("AutoBlockToggle", {
-    Text = "Enable AutoBlock",
-    Default = false,
-    Callback = function(value)
-        autoblockEnabled = value
-        Library:Notify("AutoBlock " .. (value and "enabled" or "disabled"))
-    end
-})
-
-MainGroup:AddSlider("RangeSlider", {
-    Text = "Detection Range",
-    Min = 0,
-    Max = 20,
-    Default = 10,
-    Rounding = 1,
-    Suffix = " studs",
-    Callback = function(value)
-        blockRadius = value
-        if spherePart then
-            spherePart.Size = Vector3.new(blockRadius * 2, blockRadius * 2, blockRadius * 2)
-        end
-    end
-})
-
-MainGroup:AddToggle("RangeSphereToggle", {
-    Text = "Show Block Range",
-    Default = false,
-    Callback = function(value)
-        if value then
-            if not spherePart then
-                spherePart = Instance.new("Part")
-                spherePart.Anchored = true
-                spherePart.CanCollide = false
-                spherePart.Transparency = 0.7
-                spherePart.Material = Enum.Material.Neon
-                spherePart.Color = Color3.fromRGB(0, 170, 255)
-                spherePart.Shape = Enum.PartType.Ball
-                spherePart.Name = "BlockRangeVisualizer"
-                spherePart.Parent = workspace
-            end
-
-            task.spawn(function()
-                while Toggles.RangeSphereToggle.Value and spherePart do
-                    local hrp = Character:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        spherePart.Position = hrp.Position + Vector3.new(0, 4, 0)
-                        spherePart.Size = Vector3.new(blockRadius * 2, blockRadius * 2, blockRadius * 2)
-                    end
-                    task.wait(0.05)
-                end
-                if spherePart then
-                    spherePart:Destroy()
-                    spherePart = nil
-                end
-            end)
-        else
-            if spherePart then
-                spherePart:Destroy()
-                spherePart = nil
-            end
-        end
-    end
-})
-
-MainGroup:AddToggle("ArenaOnlyToggle", {
-    Text = "Arena Only Mode",
-    Default = false,
-    Callback = function(value)
-        arenaOnly = value
-        Library:Notify("Arena Only Mode " .. (value and "enabled" or "disabled"))
-    end
-})
-
-MainGroup:AddLabel("AutoBlock Keybind")
-    :AddKeyPicker("AutoBlockKey", {
-        Default = "R",
-        SyncToggleState = false,
-        Mode = "Toggle",
-        Text = "Keybind",
-        NoUI = false,
-        Callback = function()
-            autoblockEnabled = not autoblockEnabled
-            Toggles.AutoBlockToggle:SetValue(autoblockEnabled)
-            Library:Notify("AutoBlock " .. (autoblockEnabled and "enabled" or "disabled"))
-        end,
-        ChangedCallback = function(newKey)
-            chosenKey = newKey
-        end
-    })
-
-MainGroup:AddLabel("GUI Keybind")
-    :AddKeyPicker("GUIKey", {
-        Default = "RightShift",
-        SyncToggleState = false,
-        Mode = "Toggle",
-        Text = "GUI Keybind",
-        NoUI = false,
-        Callback = function()
-            Library:ToggleUI()
-        end,
-        ChangedCallback = function(newKey)
-            toggleKey = newKey
-        end
-    })
-
---// Input Simulation
-local function simulateRightClick()
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 1, true, game, 0)
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 1, false, game, 0)
-end
-
 --// Keybind handling
-UserInputService.InputBegan:Connect(function(input, processed)
+game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
     if processed then return end
-
     if input.KeyCode == toggleKey then
-        -- Always toggle UI on GUI keybind
-        Library:ToggleUI()
+        -- Always toggle GUI on GUI keybind
+        Window:Toggle()
         return
     end
 
     if input.KeyCode == chosenKey then
         autoblockEnabled = not autoblockEnabled
-        Toggles.AutoBlockToggle:SetValue(autoblockEnabled)
-        Library:Notify("AutoBlock " .. (autoblockEnabled and "enabled" or "disabled"))
+        AutoBlockToggle:SetValue(autoblockEnabled)
+        VapeUI:Notify("AutoBlock " .. (autoblockEnabled and "enabled" or "disabled"))
     end
 end)
 
+--// Get Current Arena and Opponent
+local function GetCurrentArena()
+    local CurrentArena, Opponent
+    for _, Arena in ipairs(workspace.Arenas:GetChildren()) do
+        local Info = Arena:FindFirstChild("Info")
+        if Info then
+            local P1 = Info:FindFirstChild("P1")
+            local P2 = Info:FindFirstChild("P2")
+            if P1 and P2 and (Info:FindFirstChild("Active") and Info.Active.Value) then
+                if P1.Title.Text == game.Players.LocalPlayer.Name then
+                    CurrentArena = Arena
+                    Opponent = P2.Title.Text
+                elseif P2.Title.Text == game.Players.LocalPlayer.Name then
+                    CurrentArena = Arena
+                    Opponent = P1.Title.Text
+                end
+            end
+        end
+    end
+    return CurrentArena, Opponent
+end
+
 --// AutoBlock Logic
-RunService.RenderStepped:Connect(function()
+game:GetService("RunService").RenderStepped:Connect(function()
     if not autoblockEnabled then return end
 
-    local myRoot = Character:FindFirstChild("HumanoidRootPart")
+    local myRoot = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
 
     local currentArena, opponentName = GetCurrentArena()
 
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Humanoid") then
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr ~= game.Players.LocalPlayer and plr.Character and plr.Character:FindFirstChild("Humanoid") then
             -- Only block the opponent if ArenaOnly is enabled
             if arenaOnly then
                 if opponentName == plr.Name then
@@ -236,9 +179,8 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
---// Theme & Save Manager Setup
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-SaveManager:BuildConfigSection(Tabs["UI Settings"])
-ThemeManager:ApplyToTab(Tabs["UI Settings"])
-SaveManager:LoadAutoloadConfig()
+--// Utility to simulate right-click event (for blocking)
+local function simulateRightClick()
+    game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 1, true, game, 0)
+    game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 1, false, game, 0)
+end
