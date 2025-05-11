@@ -40,6 +40,7 @@ end)
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
 ScreenGui.Name = "EthanHubGUI"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.Enabled = true  -- Ensure the GUI is enabled
 
 local Frame = Instance.new("Frame", ScreenGui)
 Frame.Position = UDim2.new(0.3, 0, 0.3, 0)
@@ -48,6 +49,7 @@ Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Frame.BorderSizePixel = 0
 Frame.Active = true
 Frame.Draggable = true
+Frame.Visible = true  -- Ensure the frame is visible
 
 --// Custom Manual Drag Support
 local dragging, dragInput, dragStart, startPos
