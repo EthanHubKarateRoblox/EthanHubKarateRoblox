@@ -1,186 +1,205 @@
---// Load Vape UI Library
-local repo = "https://raw.githubusercontent.com/Glitchfiend/Vape-Roblox/main/"
-local VapeUI = loadstring(game:HttpGet(repo .. "VapeUI.lua"))()
+if game.GameId == 2343912333 then
 
---// Create the main window
-local Window = VapeUI.CreateWindow("EthanHub")
-local MainTab = Window:AddTab("Main", "shield")
-local SettingsTab = Window:AddTab("Settings", "settings")
+    --  Custom attack animations
+    local AttackAnimations = {
+        ["82911091354553"] = true, ["103336801329780"] = true, ["105150646815272"] = true,
+        ["98318926280319"] = true, ["108913510610406"] = true, ["107740883402248"] = true,
+        ["122701861229121"] = true, ["125018409349026"] = true, ["114221477824657"] = true,
+        ["83802329098847"] = true, ["118480299660805"] = true, ["113684712729173"] = true,
+        ["72927149141988"] = true, ["126662379286392"] = true, ["75572200914356"] = true,
+        ["121198390506303"] = true, ["122913161645160"] = true, ["114218990397580"] = true,
+        ["106497344112583"] = true, ["131037233929491"] = true, ["112272301704366"] = true,
+        ["99933226512298"] = true, ["121357948303216"] = true, ["130596967059494"] = true,
+        ["83407779189782"] = true, ["131738926005737"] = true, ["77211220327972"] = true,
+        ["106329559025355"] = true, ["100775133196683"] = true, ["107606309178933"] = true,
+        ["85410000959765"] = true, ["76496360985151"] = true, ["74555786900330"] = true
+    }
 
---// State Variables
-local autoblockEnabled = false
-local blockRadius = 10
-local arenaOnly = false
-local chosenKey = Enum.KeyCode.R
-local toggleKey = Enum.KeyCode.RightShift
-local spherePart = nil
-local opponent = nil
+    local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
+    local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
+    local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/SaveManager.lua"))()
 
---// Staff List (example)
-local staffList = {
-    Eyroku = true, realkeatos123456 = true, Capybarabruv = true, kurosfx = true,
-    PancakesHDD = true, OSCARsdb1 = true, missionslayer = true, ["80poplic"] = true,
-    ["32MAF"] = true, clexa123456 = true, YugoGrace = true, NotMistiCat = true,
-    MinishWasntTaken = true, risingnixillium = true, evas84832 = true, benyibandz = true,
-    Marko_Sans = true, ["2j2ij2j"] = true, AZ_PRO2020 = true, ruri_kuu = true,
-    tidypop = true, Turboohh = true, kitakro = true, hitakru = true,
-    kyasuji = true, kyesumi = true
-}
+    ThemeManager:SetLibrary(Library)
+    ThemeManager:SetFolder("pudding")
+    SaveManager:SetLibrary(Library)
+    SaveManager:IgnoreThemeSettings()
+    SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+    SaveManager:SetFolder("pudding/karate")
 
---// AutoBlock toggle button
-local AutoBlockToggle = MainTab:AddToggle("AutoBlock", "Enable AutoBlock", false, function(value)
-    autoblockEnabled = value
-    if autoblockEnabled then
-        VapeUI:Notify("AutoBlock Enabled")
-    else
-        VapeUI:Notify("AutoBlock Disabled")
-    end
-end)
+    local Window = Library:CreateWindow({
+        Title = "Karate | EthanHub",
+        Footer = "Made by EthanHub | (click to join Discord)",
+        ShowCustomCursor = false
+    })
 
---// Toggle for Arena-Only Mode
-local ArenaOnlyToggle = MainTab:AddToggle("ArenaOnly", "Arena Only Mode", false, function(value)
-    arenaOnly = value
-    if arenaOnly then
-        VapeUI:Notify("Arena Only Mode Enabled")
-    else
-        VapeUI:Notify("Arena Only Mode Disabled")
-    end
-end)
+    local MainTab = Window:AddTab("Main")
+    local BlockGroup = MainTab:AddLeftGroupbox("Auto Blocker")
 
---// Server Hop Toggle (Set to false if you don't want it)
-local ServerHopToggle = MainTab:AddToggle("ServerHop", "Enable Server Hop on Staff Detection", false, function(value)
-    -- Your server hop logic goes here
-end)
+    BlockGroup:AddToggle("AutoBlock_Enabled", { Text = "Enabled" }):AddKeyPicker("AutoBlock_Enabled", {
+        Default = "F", SyncToggleState = true, Mode = "Toggle", Text = "Auto Block Keybind"
+    })
 
---// Keybind setup for AutoBlock (Default is "R")
-local Keybind = MainTab:AddKeybind("AutoBlock Keybind", "Set AutoBlock Keybind", Enum.KeyCode.R, function(newKey)
-    chosenKey = newKey
-    VapeUI:Notify("AutoBlock Keybind set to " .. chosenKey.Name)
-end)
+    BlockGroup:AddSlider("AutoBlock_BlockChance", {
+        Text = "Block Chance", Default = 100, Min = 0, Max = 100, Rounding = 0, Suffix = "%"
+    })
 
---// Keybind setup for GUI Toggle (Default is RightShift)
-local GuiKeybind = SettingsTab:AddKeybind("GUI Keybind", "Set GUI Toggle Keybind", Enum.KeyCode.RightShift, function(newKey)
-    toggleKey = newKey
-    VapeUI:Notify("GUI Keybind set to " .. toggleKey.Name)
-end)
+    BlockGroup:AddSlider("AutoBlock_Distance", {
+        Text = "Max Block Distance", Default = 10, Min = 0, Max = 20, Rounding = 1, Suffix = " studs"
+    })
 
---// Show Block Range (Visualization)
-local ShowRangeToggle = MainTab:AddToggle("Show Range", "Show Block Range", false, function(value)
-    if value then
-        if not spherePart then
-            spherePart = Instance.new("Part")
-            spherePart.Anchored = true
-            spherePart.CanCollide = false
-            spherePart.Transparency = 0.7
-            spherePart.Material = Enum.Material.Neon
-            spherePart.Color = Color3.fromRGB(0, 170, 255)
-            spherePart.Shape = Enum.PartType.Ball
-            spherePart.Parent = workspace
-        end
-    else
-        if spherePart then
-            spherePart:Destroy()
-            spherePart = nil
-        end
-    end
-end)
+    BlockGroup:AddToggle("AutoBlock_IgnorePlayersBehind", { Text = "Ignore Players Behind" })
+    BlockGroup:AddToggle("AutoBlock_IgnoreNotInGame", { Text = "Ignore Outside of Arena" })
 
---// Attack Animations (example)
-local AttackAnimations = {
-    ["82911091354553"] = true, ["103336801329780"] = true, ["105150646815272"] = true,
-    ["98318926280319"] = true, ["108913510610406"] = true, ["107740883402248"] = true,
-    ["122701861229121"] = true, ["125018409349026"] = true, ["114221477824657"] = true,
-    ["83802329098847"] = true, ["118480299660805"] = true, ["113684712729173"] = true,
-    ["72927149141988"] = true, ["126662379286392"] = true, ["75572200914356"] = true,
-    ["121198390506303"] = true, ["122913161645160"] = true, ["114218990397580"] = true,
-    ["106497344112583"] = true, ["131037233929491"] = true, ["112272301704366"] = true,
-    ["99933226512298"] = true, ["121357948303216"] = true, ["130596967059494"] = true,
-    ["83407779189782"] = true, ["131738926005737"] = true, ["77211220327972"] = true,
-    ["106329559025355"] = true, ["100775133196683"] = true, ["107606309178933"] = true,
-    ["85410000959765"] = true, ["76496360985151"] = true, ["74555786900330"] = true
-}
+    BlockGroup:AddSlider("AutoBlock_StartDelay", {
+        Text = "Block Start Delay", Default = 0, Min = 0, Max = 1000, Rounding = 0, Suffix = " ms"
+    })
 
---// Keybind handling
-game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
-    if processed then return end
-    if input.KeyCode == toggleKey then
-        -- Always toggle GUI on GUI keybind
-        Window:Toggle()
-        return
+    BlockGroup:AddToggle("AutoBlock_RandomStart", { Text = "Randomize Start Delay" })
+
+    BlockGroup:AddSlider("AutoBlock_ReleaseDelay", {
+        Text = "Block Stop Delay", Default = 100, Min = 0, Max = 1000, Rounding = 0, Suffix = " ms"
+    })
+
+    BlockGroup:AddToggle("AutoBlock_RandomRelease", { Text = "Randomize Release Delay" })
+
+    local MiscGroup = MainTab:AddRightGroupbox("Misc")
+    MiscGroup:AddToggle("Misc_UseCombatController", { Text = "Use Combat Controller" })
+    MiscGroup:AddToggle("Misc_DisableWhenAFK", { Text = "Disable when AFK" })
+    MiscGroup:AddToggle("Misc_DisableWhenRoundEnds", { Text = "Disable when round ends" })
+
+    local SettingsTab = Window:AddTab("Settings")
+    local UIGroup = SettingsTab:AddRightGroupbox("UI")
+    UIGroup:AddLabel("Menu Keybind"):AddKeyPicker("MenuKeybind", {
+        Default = "RightShift", NoUI = true, Text = "Menu Keybind"
+    })
+
+    Library.ToggleKeybind = Library.Options.MenuKeybind
+    SaveManager:BuildConfigSection(SettingsTab)
+    ThemeManager:ApplyToTab(SettingsTab)
+
+    --  Core Services and Logic
+    local Players = game:GetService("Players")
+    local StarterGui = game:GetService("StarterGui")
+    local UserInputService = game:GetService("UserInputService")
+    local LocalPlayer = Players.LocalPlayer
+
+    local function Notify(msg)
+        pcall(function()
+            StarterGui:SetCore("SendNotification", {
+                Title = "EthanHub AutoBlock",
+                Text = msg,
+                Duration = 3
+            })
+        end)
     end
 
-    if input.KeyCode == chosenKey then
-        autoblockEnabled = not autoblockEnabled
-        AutoBlockToggle:SetValue(autoblockEnabled)
-        VapeUI:Notify("AutoBlock " .. (autoblockEnabled and "enabled" or "disabled"))
+    local function IsBehind(from, target)
+        local dir = from.CFrame.LookVector
+        local toTarget = (target.Position - from.Position).Unit
+        return dir:Dot(toTarget) < -0.5
     end
-end)
 
---// Get Current Arena and Opponent
-local function GetCurrentArena()
-    local CurrentArena, Opponent
-    for _, Arena in ipairs(workspace.Arenas:GetChildren()) do
-        local Info = Arena:FindFirstChild("Info")
-        if Info then
-            local P1 = Info:FindFirstChild("P1")
-            local P2 = Info:FindFirstChild("P2")
-            if P1 and P2 and (Info:FindFirstChild("Active") and Info.Active.Value) then
-                if P1.Title.Text == game.Players.LocalPlayer.Name then
-                    CurrentArena = Arena
-                    Opponent = P2.Title.Text
-                elseif P2.Title.Text == game.Players.LocalPlayer.Name then
-                    CurrentArena = Arena
-                    Opponent = P1.Title.Text
-                end
-            end
+    local function Block(press)
+        local vim = game:GetService("VirtualInputManager")
+        if mouse2press then
+            if press then mouse2press() else mouse2release() end
+        else
+            vim:SendMouseButtonEvent(500, 500, 1, press, game, 1)
         end
     end
-    return CurrentArena, Opponent
-end
 
---// AutoBlock Logic
-game:GetService("RunService").RenderStepped:Connect(function()
-    if not autoblockEnabled then return end
-
-    local myRoot = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-
-    local currentArena, opponentName = GetCurrentArena()
-
-    for _, plr in ipairs(game.Players:GetPlayers()) do
-        if plr ~= game.Players.LocalPlayer and plr.Character and plr.Character:FindFirstChild("Humanoid") then
-            -- Only block the opponent if ArenaOnly is enabled
-            if arenaOnly then
-                if opponentName == plr.Name then
-                    for _, track in ipairs(plr.Character.Humanoid:GetPlayingAnimationTracks()) do
-                        local animId = track.Animation.AnimationId:match("%d+")
-                        if animId and AttackAnimations[animId] then
-                            local enemyRoot = plr.Character:FindFirstChild("HumanoidRootPart")
-                            if enemyRoot and (myRoot.Position - enemyRoot.Position).Magnitude <= blockRadius then
-                                simulateRightClick()
-                                break
-                            end
-                        end
-                    end
-                end
-            else
-                for _, track in ipairs(plr.Character.Humanoid:GetPlayingAnimationTracks()) do
-                    local animId = track.Animation.AnimationId:match("%d+")
-                    if animId and AttackAnimations[animId] then
-                        local enemyRoot = plr.Character:FindFirstChild("HumanoidRootPart")
-                        if enemyRoot and (myRoot.Position - enemyRoot.Position).Magnitude <= blockRadius then
-                            simulateRightClick()
-                            break
-                        end
+    local arenaModel, opponentName
+    local function GetArenaOpponent()
+        for _, arena in pairs(workspace.Arenas:GetChildren()) do
+            local info = arena:FindFirstChild("Info")
+            if info then
+                local p1 = info:FindFirstChild("P1", true)
+                local p2 = info:FindFirstChild("P2", true)
+                local active = info:FindFirstChild("Active")
+                if active and active.Value then
+                    if p1 and p1.Title.Text == LocalPlayer.Name then
+                        return arena, p2.Title.Text
+                    elseif p2 and p2.Title.Text == LocalPlayer.Name then
+                        return arena, p1.Title.Text
                     end
                 end
             end
         end
+        return nil, nil
     end
-end)
 
---// Utility to simulate right-click event (for blocking)
-local function simulateRightClick()
-    game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 1, true, game, 0)
-    game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 1, false, game, 0)
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.KeyCode == Enum.KeyCode.F then
+            local current = Library.Toggles.AutoBlock_Enabled.Value
+            Library.Toggles.AutoBlock_Enabled:SetValue(not current)
+            Notify("AutoBlock " .. (not current and "ENABLED ✅" or "DISABLED ❌"))
+        end
+    end)
+
+    task.spawn(function()
+        while task.wait(0.5) do
+            arenaModel, opponentName = GetArenaOpponent()
+        end
+    end)
+
+    task.spawn(function()
+        while task.wait() do
+            if not Library.Toggles.AutoBlock_Enabled.Value then continue end
+
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if not root then continue end
+
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr == LocalPlayer then continue end
+                if Library.Toggles.AutoBlock_IgnoreNotInGame.Value and plr.Name ~= opponentName then continue end
+
+                local enemyChar = plr.Character
+                local enemyRoot = enemyChar and enemyChar:FindFirstChild("HumanoidRootPart")
+                local humanoid = enemyChar and enemyChar:FindFirstChild("Humanoid")
+                if not (enemyRoot and humanoid and humanoid.Health > 0) then continue end
+
+                if Library.Toggles.AutoBlock_IgnorePlayersBehind.Value and IsBehind(root, enemyRoot) then continue end
+                if (root.Position - enemyRoot.Position).Magnitude > Library.Options.AutoBlock_Distance.Value then continue end
+
+                for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
+                    local animId = track.Animation.AnimationId
+                    local stripped = animId:gsub("rbxassetid://", "")
+                    if not AttackAnimations[stripped] then continue end
+                    if track.TimePosition < 0.05 or track.TimePosition > 0.1 then continue end
+
+                    local delay = Library.Toggles.AutoBlock_RandomStart.Value and math.random(0, Library.Options.AutoBlock_StartDelay.Value) or Library.Options.AutoBlock_StartDelay.Value
+                    local release = Library.Toggles.AutoBlock_RandomRelease.Value and math.random(0, Library.Options.AutoBlock_ReleaseDelay.Value) or Library.Options.AutoBlock_ReleaseDelay.Value
+
+                    if math.random(1, 100) <= Library.Options.AutoBlock_BlockChance.Value then
+                        task.wait(delay / 1000)
+                        Block(true)
+                        task.wait(release / 1000)
+                        Block(false)
+                    end
+                    task.wait(track.Length)
+                end
+            end
+        end
+    end)
+
+    -- 💬 Discord Button (click to copy)
+    local DiscordButton = Instance.new("TextButton")
+    DiscordButton.Size = UDim2.new(0, 200, 0, 20)
+    DiscordButton.Position = UDim2.new(0, 10, 1, -30)
+    DiscordButton.Text = "Click to copy Discord: discord.gg/CG4Uu4Fqr8"
+    DiscordButton.TextColor3 = Color3.new(1, 1, 1)
+    DiscordButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    DiscordButton.BorderSizePixel = 0
+    DiscordButton.Font = Enum.Font.Gotham
+    DiscordButton.TextSize = 12
+    DiscordButton.Parent = game:GetService("CoreGui"):FindFirstChild("Obsidian") or game.CoreGui
+
+    DiscordButton.MouseButton1Click:Connect(function()
+        setclipboard("https://discord.gg/CG4Uu4Fqr8")
+        Library:Notify("Discord link copied to clipboard!")
+    end)
+
 end
+
