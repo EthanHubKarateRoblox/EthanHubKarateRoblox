@@ -25,10 +25,9 @@ local MainGroup = Tabs.Main:AddLeftGroupbox("AutoBlock")
 --// State Variables
 local autoblockEnabled = false
 local blockRadius = 10
-local chosenKey = Enum.KeyCode.R
 local spherePart = nil
 
---// Services
+--// Required Services
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -122,17 +121,7 @@ MainGroup:AddLabel("AutoBlock Keybind")
         SyncToggleState = false,
         Mode = "Toggle",
         Text = "Keybind",
-        NoUI = false,
-        Callback = function()
-            autoblockEnabled = not autoblockEnabled
-            Toggles.AutoBlockToggle:SetValue(autoblockEnabled)
-            Library:Notify("AutoBlock " .. (autoblockEnabled and "enabled" or "disabled"))
-        end,
-        ChangedCallback = function(newKey)
-            if typeof(newKey) == "EnumItem" and newKey.EnumType == Enum.KeyCode then
-                chosenKey = newKey
-            end
-        end
+        NoUI = false
     })
 
 --// Input Simulation
@@ -141,12 +130,21 @@ local function simulateRightClick()
     VirtualInputManager:SendMouseButtonEvent(0, 0, 1, false, game, 0)
 end
 
---// UI Toggle Key
-UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then return end
+--// Keybind and GUI Toggle Handling
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    -- Toggle UI with RightShift
     if input.KeyCode == Enum.KeyCode.RightShift then
-        local state = Library:GetVisible()
-        Library:SetVisible(not state)
+        Library:ToggleUI()
+    end
+
+    -- Toggle AutoBlock with selected key
+    local currentKey = Options.AutoBlockKey.Value
+    if input.KeyCode == currentKey then
+        autoblockEnabled = not autoblockEnabled
+        Toggles.AutoBlockToggle:SetValue(autoblockEnabled)
+        Library:Notify("AutoBlock " .. (autoblockEnabled and "enabled" or "disabled"))
     end
 end)
 
